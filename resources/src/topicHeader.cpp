@@ -1,12 +1,13 @@
 /*
 
-A topic is grouped taking into account its publisher. So the problem might arise if there is no unique publisher to a topic.
-In that case, we may use node remapping. Hence the topics can be grouped based in modules of our design and not on packages.
+	 A topic is grouped taking into account its publisher. So the problem might arise if there is no unique publisher to a topic.
+	 In that case, we may use node remapping. Hence the topics can be grouped based in modules of our design and not on packages.
 
 */
 #include "resources/topicHeader.h"
 
-namespace topics{
+namespace topics
+{
 //---simulator topics
 //all topics here are only used for simulator and in genral not used by other packages
 const char* SIMULATOR_THRUSTER4_TO_FORCE="/kraken/simulator/thruster4toforce";
@@ -65,6 +66,17 @@ const char* NAV_POSE_ESTIMATED="/kraken/nav/pose_estimated";
 const char* PREMAP_LOCATION_SERVICE="/kraken/nav/premap_location";
 const char* RESET_POSITION_SERVICE="/kraken/nav/reset_position";
 
+
+// pose server
+const char* POSE_SERVER_STATE="/kraken/estimated/state";
+const char* PRESENT_POSE="/kraken/estimated/position";
+
+// absolute roll, pitch and yaw
+// The IMU takes Clockwise angle to be positive;
+// On this topic, the anticlockwise roll, pitch and yaw are published.
+//
+const char* ABSOLUTE_RPY="/kraken/imu/corrected/rpy";
+
 // vision stack topics
 
 const char* CAMERA_BOTTOM_RAW_IMAGE="/kraken/bottom_camera";
@@ -97,5 +109,4 @@ const char* CAMERA_FRONT_INFO="/kraken/front_camera_info";
 const char* CAMERA_FRONT_BUOY_IMAGE="/kraken/front_camera/buoy_image";
 
 const char* CAMERA_CAM_SWITCH="/kraken/camera/camera_switch";
-
 }

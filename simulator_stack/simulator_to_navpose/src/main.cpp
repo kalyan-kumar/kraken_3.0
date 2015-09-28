@@ -7,13 +7,15 @@
 #include "underwater_sensor_msgs/DVL.h"
 #include "underwater_sensor_msgs/Pressure.h"
 #include "kraken_msgs/krakenPose.h"
-#include "geometry_msgs/PoseStamped.h".h"
-#include "geometry_msgs/TwistStamped.h".h"
+#include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TwistStamped.h"
 #include "pose_server/KrakenPose.h"
 const double PI=3.14;
-class NavPub{
+class NavPub
+{
 public:
-    NavPub(){
+    NavPub()
+    {
 
 //        _kraken_depth=n.advertise<underwater_sensor_msgs::Pressure>(topics::SENSOR_DEPTH,10);
 //        _kraken_imu=n.advertise<kraken_msgs::imuData>(topics::SENSOR_IMU,20);
@@ -61,10 +63,10 @@ public:
 
 
 
-       ros::NodeHandle n;
-       ros::Publisher _krakenpose_pub;
-       ros::Subscriber _pose_sub,_twist_sub;
-       kraken_msgs::krakenPose _kpose;
+    ros::NodeHandle n;
+    ros::Publisher _krakenpose_pub;
+    ros::Subscriber _pose_sub,_twist_sub;
+    kraken_msgs::krakenPose _kpose;
 };
 
 
