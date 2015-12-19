@@ -34,7 +34,7 @@ private:
     Server _s;
     image_transport::ImageTransport _it;
     image_transport::Subscriber _sub;
-    image_transport::Publisher _pub;
+    image_transport::Publisher _pub, py_pub;
     actionmsg::buoyFeedback _feedback;
     actionmsg::buoyResult _result;
     Mat _image, _imageHSV, _imageBW, _imageBWRed, _imageBWGreen;

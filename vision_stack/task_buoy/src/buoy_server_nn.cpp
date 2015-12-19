@@ -11,6 +11,7 @@ Buoy::Buoy(std::string name) : _it(_n), _s(_n, name, boost::bind(&Buoy::executeC
 {
     _sub = _it.subscribe(topics::CAMERA_FRONT_RAW_IMAGE, 1, &Buoy::imageCallBack, this);
     _pub = _it.advertise(topics::CAMERA_FRONT_BUOY_IMAGE, 1);
+    py_pub = _it.advertise("temp_topic", 1);
 
     fstream f;
     f.open(filepath,ios::in);
@@ -184,6 +185,7 @@ bool Buoy::detectBuoy()
         waitKey(33);
         medianBlur(_imageBW, _imageBW, 3);
         erode(_imageBW, _imageBW, _kernelDilateErode);
+        Mat exp_img = _imageBW.clone();
         //morphologyEx( _imageBW, _imageBW, MORPH_OPEN, elementEx );
         CBlobResult _blobs,_blobsClutter;
         CBlob * _currentBlob;
@@ -236,7 +238,11 @@ bool Buoy::detectBuoy()
         imshow("src_gray", src_gray);
         vector<Vec3f> circles;
         /// Apply the Hough Transform to find the circles
-        HoughCircles( src_gray, circles, CV_HOUGH_GRADIENT, 1, src_gray.rows/16, 150, 25, 0, 0 );
+        _finalImage.image = exp_img;
+        _finalImagemsg = _finalImage.toImageMsg();
+        py_pub.publish(_finalImagemsg);
+
+        //HoughCircles( src_gray, circles, CV_HOUGH_GRADIENT, 1, src_gray.rows/16, 150, 25, 0, 0 );
 
         /// Draw the circles detected
         if(circles.size() == 0)
