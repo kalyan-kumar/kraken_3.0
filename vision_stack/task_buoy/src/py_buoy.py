@@ -7,11 +7,12 @@ import rospy
 import actionlib
 import cv2
 import numpy as np
+from cv_bridge import CvBridge, CvBridgeError
 
 from resources import topicHeader
 from resources import tools
 
-from ip_msgs.msg import buoyAction
+from ip_msgs.msg import buoyAction as actionMessagebuoyAction
 from ip_msgs.msg import buoyFeedback
 from ip_msgs.msg import buoyResult
 from ip_msgs.msg import buoyGoal
@@ -24,10 +25,10 @@ class buoyServer(object):
 	def __init__(self, name):
 
 		self._action_name = name
-		self._as = actionlib.SimpleActionServer(self._action_name, ip_msgs.msg.buoyAction, execute_cb=self.execute_cb, auto_start=False)
+		self._as = actionlib.SimpleActionServer(self._action_name, actionMessagebuoyAction, execute_cb=self.execute_cb, auto_start=False)
 		self._as.start()
 
-		self._image = np.zeros((height,width,3), np.uint8)
+		self._image = np.zeros((100,100,3), np.uint8)
 		self.kernel = np.ones((3,3),np.uint8)
 		self.bridge = CvBridge()
 		self.pub = rospy.Publisher(topicHeader.CAMERA_FRONT_BUOY_IMAGE, Image, queue_size=20)
@@ -40,13 +41,13 @@ class buoyServer(object):
 					for k in range(0, 256):
 						x = f.read(1)
 						if x is not None:
-							allVals[i][j][k] = x
+							self.allVals[i][j][k] = x
 
 		rospy.loginfo('Server has started')
 
 	def image_cb(self, data):
 		try:
-			self._image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+			numpy.copyto(self._image, self.bridge.imgmsg_to_cv2(data, "bgr8"))
 		except CvBridgeError as e:
 			print(e)
 
@@ -61,12 +62,12 @@ class buoyServer(object):
 			success = False
 			return
 
-		detect_buoy()
+		self.detect_buoy()
 		ros_image = self.bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
 		pub.publish(ros_image)
 
 
-	def detect_buoy():
+	def detect_buoy(self):
 		if not self._image is None:
 			cv2.imshow('Input', self._image)
 
