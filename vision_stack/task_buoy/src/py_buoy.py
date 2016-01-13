@@ -6,6 +6,7 @@ roslib.load_manifest('task_buoy')
 import rospy
 import actionlib
 import cv2
+import cv2.cv as cv
 import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -47,7 +48,7 @@ class buoyServer(object):
 
 	def image_cb(self, data):
 		try:
-			numpy.copyto(self._image, self.bridge.imgmsg_to_cv2(data, "bgr8"))
+			self_image = self.bridge.imgmsg_to_cv2(data, "bgr8").copy()
 		except CvBridgeError as e:
 			print(e)
 
@@ -71,10 +72,11 @@ class buoyServer(object):
 		if not self._image is None:
 			cv2.imshow('Input', self._image)
 
-			for i in range(0, self._image.width):
-				for j in range(0, self._image.height):
-					pixel_value = cv.Get2D(self._image, i, j)
-					k = self.allVals[pixel_value[2]][pixel_value[1]][pixel_value[0]]
+			height, width, channels = self._image.shape
+
+			for i in range(0, width):
+				for j in range(0, height):
+					k = self.allVals[self._image[i][j][2]][self._image[i][j][1]][self._image[i][j][0]]
 					if k==0:
 						self._image.itemset((i, j, 0), 255)
 						self._image.itemset((i, j, 1), 0)
@@ -90,12 +92,12 @@ class buoyServer(object):
 
 			_imageBW = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
 			cv2.imshow("BW Image", _imageBW)
-			_imageBW = cv2medianBlur(_imageBW, 5);
-			_imageBW = cv2.erode(_imageBW, kernel, iterations = 1)
+			_imageBW = cv2.medianBlur(_imageBW, 5);
+			_imageBW = cv2.erode(_imageBW, self.kernel, iterations = 1)
 			cv2.imshow("To process", _imageBW)
 			
 
-			circles = cv2.HoughCircles(_imageBW,cv2.HOUGH_GRADIENT,1,20,param1=50,param2=30,minRadius=0,maxRadius=0)
+			circles = cv2.HoughCircles(_imageBW,cv.CV_HOUGH_GRADIENT,1,20,param1=50,param2=30,minRadius=0,maxRadius=0)
 
 			circles = np.uint16(np.around(circles))
 			for i in circles[0,:]:
