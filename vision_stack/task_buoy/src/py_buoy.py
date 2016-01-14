@@ -110,6 +110,13 @@ class buoyServer(object):
 			
 
 			circles = cv2.HoughCircles(_imageBW,cv.CV_HOUGH_GRADIENT,1,20,param1=50,param2=30,minRadius=0,maxRadius=0)
+                        
+                        ## Testing Block
+                        ## Remove if and when moving into master branch
+                        if circles == None:
+
+                            rospy.logerr("Hough Circles did not identify any circle")
+                            sys.exit(1)
 
 			if not circles is None:
 				#circles = np.uint16(np.around(circles))
