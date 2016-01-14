@@ -13,6 +13,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from resources import topicHeader
 from resources import tools
 
+import actionmsg.msg
 from ip_msgs.msg import buoyAction as actionMessagebuoyAction
 from ip_msgs.msg import buoyFeedback
 from ip_msgs.msg import buoyResult
@@ -22,14 +23,17 @@ from sensor_msgs.msg import Image
 
 class buoyServer(object):
 
-
+	_feedback = actionmsg.msg.buoyFeedback()
+	_result   = actionmsg.msg.buoyResult()
+	
 	def __init__(self, name):
 
+		self.rate = rospy.Rate(10)
 		self._action_name = name
 		self._as = actionlib.SimpleActionServer(self._action_name, actionMessagebuoyAction, execute_cb=self.execute_cb, auto_start=False)
 		self._as.start()
 
-		self._image = np.zeros((100,100,3), np.uint8)
+		self._image = np.zeros((500,1000,3), np.uint8)
 		self.kernel = np.ones((3,3),np.uint8)
 		self.bridge = CvBridge()
 		self.pub = rospy.Publisher(topicHeader.CAMERA_FRONT_BUOY_IMAGE, Image, queue_size=20)
@@ -48,31 +52,39 @@ class buoyServer(object):
 
 	def image_cb(self, data):
 		try:
-			self_image = self.bridge.imgmsg_to_cv2(data, "bgr8").copy()
+			self._image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+			#print self._image.shape
 		except CvBridgeError as e:
 			print(e)
 
 	def execute_cb(self, goal):
 		_detected = False
 
+		print "goal - "
+		print goal
 
+		while not rospy.is_shutdown():
+			
+			if self._as.is_preempt_requested():
+				rospy.loginfo('%s: Preempted' % self._action_name)
+				self._as.set_preempted()
+				success = False
+				return
 
-		if self._as.is_preempt_requested():
-			rospy.loginfo('%s: Preempted' % self._action_name)
-			self._as.set_preempted()
-			success = False
-			return
+			detected = self.detect_buoy()
+			ros_image = self.bridge.cv2_to_imgmsg(self._image, encoding="passthrough")
+			self.pub.publish(ros_image)
 
-		self.detect_buoy()
-		ros_image = self.bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
-		pub.publish(ros_image)
+			if(detected):
+				self._result.sequence.append(2)
 
+			rate.sleep()
 
 	def detect_buoy(self):
 		if not self._image is None:
 			cv2.imshow('Input', self._image)
-
-			height, width, channels = self._image.shape
+			
+			(height,width,channels) = self._image.shape
 
 			for i in range(0, width):
 				for j in range(0, height):
@@ -99,18 +111,19 @@ class buoyServer(object):
 
 			circles = cv2.HoughCircles(_imageBW,cv.CV_HOUGH_GRADIENT,1,20,param1=50,param2=30,minRadius=0,maxRadius=0)
 
-			circles = np.uint16(np.around(circles))
-			for i in circles[0,:]:
-				# draw the outer circle
-				cv2.circle(_imageBW,(i[0],i[1]),i[2],(0,255,0),2)
-				# draw the center of the circle
-				cv2.circle(_imageBW,(i[0],i[1]),2,(0,0,255),3)
+			if not circles is None:
+				#circles = np.uint16(np.around(circles))
+				for i in circles[0,:]:
+					# draw the outer circle
+					cv2.circle(_imageBW,(i[0],i[1]),i[2],(0,255,0),2)
+					# draw the center of the circle
+					cv2.circle(_imageBW,(i[0],i[1]),2,(0,0,255),3)
 
 			cv2.imshow("Output", _imageBW)
 
 			self._image = _imageBW
 
-			if(len(circles)>1):
+			if not circles is None:
 				return True
 			else:
 				return False
