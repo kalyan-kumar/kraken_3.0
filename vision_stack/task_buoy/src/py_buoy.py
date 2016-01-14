@@ -25,8 +25,8 @@ class buoyServer(object):
 
 	_feedback = actionmsg.msg.buoyFeedback()
 	_result   = actionmsg.msg.buoyResult()
-	
-	def __init__(self, name):
+
+	def __init__(self, name, filepath):
 
 		self.rate = rospy.Rate(10)
 		self._action_name = name
@@ -40,7 +40,7 @@ class buoyServer(object):
 		self.sub = rospy.Subscriber(topicHeader.CAMERA_FRONT_RAW_IMAGE, Image, self.image_cb)
 
 		self.allVals = [[[0 for i in range(256)] for j in range(256)] for k in range(256)]
-		with open(sys.argv[1]) as f:
+		with open(filepath) as f:
 			for i in range(0, 256):
 				for j in range(0, 256):
 					for k in range(0, 256):
@@ -130,5 +130,10 @@ class buoyServer(object):
 		
 if __name__ == '__main__':
 	rospy.init_node('buoy_server_nn', log_level=(rospy.DEBUG if tools.getVerboseTag(sys.argv) else rospy.INFO))
-	buoyServer('buoy_nn')
+        if len(sys.argv) <= 1:
+
+            rospy.logerr("You need to provide the path to the array file as the first CLI argument")
+            sys.exit(1)
+
+	buoyServer('buoy_nn', sys.argv[1])
 	rospy.spin()
