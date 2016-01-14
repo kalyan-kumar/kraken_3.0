@@ -33,7 +33,7 @@ class buoyServer(object):
 		self._as = actionlib.SimpleActionServer(self._action_name, actionMessagebuoyAction, execute_cb=self.execute_cb, auto_start=False)
 		self._as.start()
 
-		self._image = np.zeros((500,1000,3), np.uint8)
+		self._image = np.zeros((480,640,3), np.uint8)
 		self.kernel = np.ones((3,3),np.uint8)
 		self.bridge = CvBridge()
 		self.pub = rospy.Publisher(topicHeader.CAMERA_FRONT_BUOY_IMAGE, Image, queue_size=20)
@@ -78,13 +78,20 @@ class buoyServer(object):
 			if(detected):
 				self._result.sequence.append(2)
 
-			rate.sleep()
+			self.rate.sleep()
 
-	def detect_buoy(self):
+        def detect_buoy(self):
 		if not self._image is None:
 			cv2.imshow('Input', self._image)
 			
-			(height,width,channels) = self._image.shape
+			# (height,width,channels) = self._image.shape
+                        print self._image.shape
+                        if len(self._image.shape) >= 3:
+                            width = self._image.shape[0]
+                            height = self._image.shape[1]
+                        else:
+                            width = 480
+                            height = 600
 
 			for i in range(0, width):
 				for j in range(0, height):
