@@ -45,13 +45,26 @@ class buoyServer(object):
 		self.sub = rospy.Subscriber(topicHeader.CAMERA_FRONT_RAW_IMAGE, Image, self.image_cb)
 
 		self.allVals = [[[0 for i in range(256)] for j in range(256)] for k in range(256)]
+
 		with open(filepath) as f:
+                        all_lines = f.readlines()
+
 			for i in range(0, 256):
+                                rospy.loginfo("i done %d" % i);
 				for j in range(0, 256):
 					for k in range(0, 256):
-						x = f.read(1)
-						if x is not None:
-							self.allVals[i][j][k] = x
+                                                x = all_lines[256*i+256*j+256*k]
+                                                try:
+                                                    self.allVals[i][j][k] = int(x)
+
+                                                except:
+
+                                                    print i, j, k
+                                                    raise 
+
+                rospy.loginfo(type(self.allVals[0][25][250]))
+                rospy.loginfo(self.allVals[0][25][250])
+                rospy.loginfo(self.allVals[0][25][250] == 0)
 
 		rospy.loginfo('Server has started')
 
@@ -149,7 +162,7 @@ class buoyServer(object):
                                 rospy.loginfo("No circles found!")
 				return False
 			else:
-                                rospy.loginfo("some circles were found!")
+                                rospy.loginfo("some circles (%d) were found!" % len(circles))
 				return True
 		
 if __name__ == '__main__':
