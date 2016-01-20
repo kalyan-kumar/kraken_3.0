@@ -93,6 +93,7 @@ class buoyServer(object):
 			detected = self.detect_buoy()
 			ros_image = self.bridge.cv2_to_imgmsg(self._image, encoding="passthrough")
 			self.pub.publish(ros_image)
+			cv2.destroyAllWindows()
 
 			if(detected):
 				self._result.sequence.append(2)
@@ -103,6 +104,8 @@ class buoyServer(object):
                 #self.counter += 1
 		#if not self._image is None and self.counter % self.sampling_rate == 0:
 		if not self._image is None:
+			cv2.namedWindow('Input', cv2.WINDOW_NORMAL)
+			cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
 			cv2.imshow('Input', self._image)
 			
 			# (height,width,channels) = self._image.shape
@@ -155,7 +158,8 @@ class buoyServer(object):
 					cv2.circle(_imageBW,(i[0],i[1]),2,(0,0,255),3)
 
 			cv2.imshow("Output", _imageBW)
-
+			cv2.waitKey(33)
+			
 			self._imageBW = _imageBW
 
 			if circles == None:
