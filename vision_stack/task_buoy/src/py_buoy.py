@@ -25,35 +25,54 @@ class buoyServer(object):
 
 	_feedback = actionmsg.msg.buoyFeedback()
 	_result   = actionmsg.msg.buoyResult()
-	
-	def __init__(self, name):
+
+	def __init__(self, name, filepath, sampling_rate=10):
 
 		self.rate = rospy.Rate(10)
 		self._action_name = name
 		self._as = actionlib.SimpleActionServer(self._action_name, actionMessagebuoyAction, execute_cb=self.execute_cb, auto_start=False)
 		self._as.start()
 
-		self._image = np.zeros((500,1000,3), np.uint8)
+		self._image = np.zeros((480,640,3), np.uint8)
+                self._imageBW = np.zeros((480, 640, 3), np.uint8)
 		self.kernel = np.ones((3,3),np.uint8)
 		self.bridge = CvBridge()
+    
+                self.counter = -1
+                self.sampling_rate = sampling_rate
+
 		self.pub = rospy.Publisher(topicHeader.CAMERA_FRONT_BUOY_IMAGE, Image, queue_size=20)
 		self.sub = rospy.Subscriber(topicHeader.CAMERA_FRONT_RAW_IMAGE, Image, self.image_cb)
 
 		self.allVals = [[[0 for i in range(256)] for j in range(256)] for k in range(256)]
-		with open(sys.argv[1]) as f:
+
+		with open(filepath) as f:
+                        all_lines = f.readlines()
+
 			for i in range(0, 256):
+                                rospy.loginfo("i done %d" % i);
 				for j in range(0, 256):
 					for k in range(0, 256):
-						x = f.read(1)
-						if x is not None:
-							self.allVals[i][j][k] = x
+                                                x = all_lines[256*i+256*j+256*k]
+                                                try:
+                                                    self.allVals[i][j][k] = int(x)
+
+                                                except:
+
+                                                    print i, j, k
+                                                    raise 
+
+                rospy.loginfo(type(self.allVals[0][25][250]))
+                rospy.loginfo(self.allVals[0][25][250])
+                rospy.loginfo(self.allVals[0][25][250] == 0)
 
 		rospy.loginfo('Server has started')
 
 	def image_cb(self, data):
 		try:
 			self._image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-			#print self._image.shape
+                        if self._image.shape[2] != 3:
+                            print "3 channels not present in this image!!!"
 		except CvBridgeError as e:
 			print(e)
 
@@ -63,28 +82,40 @@ class buoyServer(object):
 		print "goal - "
 		print goal
 
-		while not rospy.is_shutdown():
+		while 1:
 			
-			if self._as.is_preempt_requested():
-				rospy.loginfo('%s: Preempted' % self._action_name)
-				self._as.set_preempted()
-				success = False
-				return
+			#if self._as.is_preempt_requested():
+				#rospy.loginfo('%s: Preempted' % self._action_name)
+				#self._as.set_preempted()
+				#success = False
+				#return
 
 			detected = self.detect_buoy()
 			ros_image = self.bridge.cv2_to_imgmsg(self._image, encoding="passthrough")
 			self.pub.publish(ros_image)
+			cv2.destroyAllWindows()
 
 			if(detected):
 				self._result.sequence.append(2)
 
-			rate.sleep()
+			self.rate.sleep()
 
-	def detect_buoy(self):
+        def detect_buoy(self):
+                #self.counter += 1
+		#if not self._image is None and self.counter % self.sampling_rate == 0:
 		if not self._image is None:
+			cv2.namedWindow('Input', cv2.WINDOW_NORMAL)
+			cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
 			cv2.imshow('Input', self._image)
 			
-			(height,width,channels) = self._image.shape
+			# (height,width,channels) = self._image.shape
+                        print "Shape: ", self._image.shape
+                        if len(self._image.shape) >= 3:
+                            width = self._image.shape[0]
+                            height = self._image.shape[1]
+                        else:
+                            width = 480
+                            height = 600
 
 			for i in range(0, width):
 				for j in range(0, height):
@@ -103,13 +134,20 @@ class buoyServer(object):
 						self._image.itemset((i, j, 0), 0)
 
 			_imageBW = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
-			cv2.imshow("BW Image", _imageBW)
+			#cv2.imshow("BW Image", _imageBW)
 			_imageBW = cv2.medianBlur(_imageBW, 5);
 			_imageBW = cv2.erode(_imageBW, self.kernel, iterations = 1)
-			cv2.imshow("To process", _imageBW)
+			#cv2.imshow("To process", _imageBW)
 			
 
 			circles = cv2.HoughCircles(_imageBW,cv.CV_HOUGH_GRADIENT,1,20,param1=50,param2=30,minRadius=0,maxRadius=0)
+                        
+                        ## Testing Block
+                        ## Remove if and when moving into master branch
+                        if circles == None:
+
+                            rospy.logerr("Hough Circles did not identify any circle")
+                            #sys.exit(1)
 
 			if not circles is None:
 				#circles = np.uint16(np.around(circles))
@@ -120,15 +158,23 @@ class buoyServer(object):
 					cv2.circle(_imageBW,(i[0],i[1]),2,(0,0,255),3)
 
 			cv2.imshow("Output", _imageBW)
+			cv2.waitKey(33)
+			
+			self._imageBW = _imageBW
 
-			self._image = _imageBW
-
-			if not circles is None:
-				return True
-			else:
+			if circles == None:
+                                rospy.loginfo("No circles found!")
 				return False
+			else:
+                                rospy.loginfo("some circles (%d) were found!" % len(circles))
+				return True
 		
 if __name__ == '__main__':
 	rospy.init_node('buoy_server_nn', log_level=(rospy.DEBUG if tools.getVerboseTag(sys.argv) else rospy.INFO))
-	buoyServer('buoy_nn')
+        if len(sys.argv) <= 1:
+
+            rospy.logerr("You need to provide the path to the array file as the first CLI argument")
+            sys.exit(1)
+
+	buoyServer('buoy_nn', sys.argv[1])
 	rospy.spin()
